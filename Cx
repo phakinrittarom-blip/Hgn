@@ -1,0 +1,559 @@
+-- ==========================================
+-- โหลด Rayfield UI Library
+-- ==========================================
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local VirtualUser = game:GetService("VirtualUser")
+
+local Window = Rayfield:CreateWindow({
+   Name = "phakin Hub | Fly GUI V3 & Chest Edition",
+   LoadingTitle = "phakin Hub Loading...",
+   LoadingSubtitle = "by phakin",
+   ConfigurationSaving = { Enabled = false },
+   Discord = { Enabled = false },
+   KeySystem = false
+})
+
+-- ==========================================
+-- 🛡️ ระบบ Anti-AFK
+-- ==========================================
+LocalPlayer.Idled:Connect(function()
+    VirtualUser:Button2Down(Vector2.new(0, 0), Camera.CFrame)
+    task.wait(1)
+    VirtualUser:Button2Up(Vector2.new(0, 0), Camera.CFrame)
+end)
+
+-- ==========================================
+-- ปุ่มลอย เปิด/ปิด UI หลัก
+-- ==========================================
+local parentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
+
+if parentGui:FindFirstChild("phakin_ToggleUI") then
+    parentGui.phakin_ToggleUI:Destroy()
+end
+
+local toggleScreen = Instance.new("ScreenGui")
+toggleScreen.Name = "phakin_ToggleUI"
+toggleScreen.ResetOnSpawn = false
+toggleScreen.Parent = parentGui
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleButton"
+toggleBtn.Parent = toggleScreen
+toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+toggleBtn.Position = UDim2.new(0, 15, 0.4, 0)
+toggleBtn.Size = UDim2.new(0, 95, 0, 35)
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.Text = "เปิด/ปิด UI"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 14
+toggleBtn.Active = true
+toggleBtn.Draggable = true
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 6)
+corner.Parent = toggleBtn
+
+local uiVisible = true
+toggleBtn.MouseButton1Click:Connect(function()
+    uiVisible = not uiVisible
+    local coreApp = parentGui:FindFirstChild("Rayfield") or CoreGui:FindFirstChild("Rayfield")
+    if coreApp then
+        coreApp.Enabled = uiVisible
+    end
+end)
+
+-- ==========================================
+-- 🚁 หน้าต่าง FLY GUI V3 (ถอดแบบตรงตามรูปภาพ 100%)
+-- ==========================================
+if parentGui:FindFirstChild("phakin_FlyGuiV3") then
+    parentGui.phakin_FlyGuiV3:Destroy()
+end
+
+local flyScreen = Instance.new("ScreenGui")
+flyScreen.Name = "phakin_FlyGuiV3"
+flyScreen.ResetOnSpawn = false
+flyScreen.Enabled = false
+flyScreen.Parent = parentGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 240, 0, 90)
+mainFrame.Position = UDim2.new(0, 15, 0.5, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+mainFrame.BorderSizePixel = 1
+mainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = flyScreen
+
+local flying = false
+local flySpeed = 1
+local flyLoop
+local verticalSpeed = 0
+
+-- สร้างปุ่มตาม Grid ในรูป
+local function createButton(name, text, bg, pos, size, font, textColor, textSize)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Text = text
+    btn.BackgroundColor3 = bg
+    btn.Position = pos
+    btn.Size = size
+    btn.Font = font or Enum.Font.SourceSansBold
+    btn.TextColor3 = textColor or Color3.fromRGB(0, 0, 0)
+    btn.TextSize = textSize or 14
+    btn.BorderSizePixel = 1
+    btn.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    btn.Parent = mainFrame
+    return btn
+end
+
+local btnX = createButton("BtnX", "X", Color3.fromRGB(255, 0, 0), UDim2.new(0, 0, 0, 0), UDim2.new(0, 40, 0, 30), Enum.Font.SourceSansBold, Color3.fromRGB(0,0,0), 18)
+local btnMinimize = createButton("BtnMin", "-", Color3.fromRGB(180, 130, 230), UDim2.new(0, 40, 0, 0), UDim2.new(0, 40, 0, 30), Enum.Font.SourceSansBold, Color3.fromRGB(0,0,0), 20)
+local btnUp = createButton("BtnUp", "UP", Color3.fromRGB(120, 255, 150), UDim2.new(0, 0, 0, 30), UDim2.new(0, 40, 0, 30))
+local btnPlus = createButton("BtnPlus", "+", Color3.fromRGB(130, 150, 255), UDim2.new(0, 40, 0, 30), UDim2.new(0, 40, 0, 30), Enum.Font.SourceSansBold, Color3.fromRGB(0,0,0), 18)
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "Title"
+titleLabel.Text = "FLY GUI V3"
+titleLabel.BackgroundColor3 = Color3.fromRGB(230, 100, 255)
+titleLabel.Position = UDim2.new(0, 80, 0, 30)
+titleLabel.Size = UDim2.new(0, 160, 0, 30)
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+titleLabel.TextSize = 18
+titleLabel.BorderSizePixel = 1
+titleLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
+titleLabel.Parent = mainFrame
+
+local btnDown = createButton("BtnDown", "DOWN", Color3.fromRGB(220, 255, 130), UDim2.new(0, 0, 0, 60), UDim2.new(0, 40, 0, 30))
+local btnSub = createButton("BtnSub", "-", Color3.fromRGB(120, 240, 255), UDim2.new(0, 40, 0, 60), UDim2.new(0, 40, 0, 30), Enum.Font.SourceSansBold, Color3.fromRGB(0,0,0), 20)
+
+local speedDisp = Instance.new("TextLabel")
+speedDisp.Name = "SpeedDisplay"
+speedDisp.Text = tostring(flySpeed)
+speedDisp.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+speedDisp.Position = UDim2.new(0, 80, 0, 60)
+speedDisp.Size = UDim2.new(0, 80, 0, 30)
+speedDisp.Font = Enum.Font.SourceSansBold
+speedDisp.TextColor3 = Color3.fromRGB(0, 0, 0)
+speedDisp.TextSize = 22
+speedDisp.BorderSizePixel = 1
+speedDisp.BorderColor3 = Color3.fromRGB(0, 0, 0)
+speedDisp.Parent = mainFrame
+
+local btnFly = createButton("BtnFly", "fly", Color3.fromRGB(255, 240, 80), UDim2.new(0, 160, 0, 60), UDim2.new(0, 80, 0, 30), Enum.Font.SourceSans, Color3.fromRGB(0,0,0), 16)
+
+-- ระบบการทำงานบิน
+local function startFlying()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+
+    if humanoid then
+        humanoid.PlatformStand = true
+    end
+
+    flyLoop = RunService.Heartbeat:Connect(function(delta)
+        if not flying or not char or not hrp then
+            if flyLoop then flyLoop:Disconnect() end
+            return
+        end
+
+        local moveDir = Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
+        
+        moveDir = moveDir + Vector3.new(0, verticalSpeed, 0)
+
+        if moveDir.Magnitude > 0 then
+            hrp.CFrame = hrp.CFrame + (moveDir.Unit * (flySpeed * 50) * delta)
+        end
+        hrp.Velocity = Vector3.zero
+    end)
+end
+
+local function stopFlying()
+    flying = false
+    if flyLoop then flyLoop:Disconnect() end
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+end
+
+-- Event Buttons
+btnFly.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        btnFly.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+        startFlying()
+    else
+        btnFly.BackgroundColor3 = Color3.fromRGB(255, 240, 80)
+        stopFlying()
+    end
+end)
+
+btnPlus.MouseButton1Click:Connect(function()
+    flySpeed = flySpeed + 1
+    speedDisp.Text = tostring(flySpeed)
+end)
+
+btnSub.MouseButton1Click:Connect(function()
+    if flySpeed > 1 then
+        flySpeed = flySpeed - 1
+        speedDisp.Text = tostring(flySpeed)
+    end
+end)
+
+btnUp.MouseButton1Down:Connect(function() verticalSpeed = 1 end)
+btnUp.MouseButton1Up:Connect(function() verticalSpeed = 0 end)
+btnDown.MouseButton1Down:Connect(function() verticalSpeed = -1 end)
+btnDown.MouseButton1Up:Connect(function() verticalSpeed = 0 end)
+
+btnX.MouseButton1Click:Connect(function()
+    stopFlying()
+    flyScreen.Enabled = false
+end)
+
+-- ==========================================
+-- 🔪 1. แท็บ MM2
+-- ==========================================
+local MM2Tab = Window:CreateTab("MM2 Mode", 4483362458)
+MM2Tab:CreateSection("ระบบช่วยเล่น Murder Mystery 2")
+
+local autoGun, autoCoin, roleEsp = false, false, false
+
+local function getMM2Roles()
+    local murderer, sheriff = nil, nil
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Character then
+            if p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife") then murderer = p
+            elseif p.Backpack:FindFirstChild("Gun") or p.Character:FindFirstChild("Gun") then sheriff = p end
+        end
+    end
+    return murderer, sheriff
+end
+
+MM2Tab:CreateToggle({
+   Name = "ดูบทบาทผู้เล่น (Show Roles ESP)",
+   CurrentValue = false,
+   Callback = function(Value)
+      roleEsp = Value
+      if Value then
+          task.spawn(function()
+              while roleEsp do
+                  local m, s = getMM2Roles()
+                  for _, p in pairs(Players:GetPlayers()) do
+                      if p.Character and p ~= LocalPlayer then
+                          local hl = p.Character:FindFirstChild("MM2_Role_HL") or Instance.new("Highlight")
+                          hl.Name = "MM2_Role_HL"
+                          hl.Parent = p.Character
+                          hl.FillColor = (p == m and Color3.fromRGB(255, 0, 0)) or (p == s and Color3.fromRGB(0, 100, 255)) or Color3.fromRGB(0, 255, 0)
+                          hl.Enabled = roleEsp
+                      end
+                  end
+                  task.wait(1)
+              end
+          end)
+      end
+   end,
+})
+
+MM2Tab:CreateButton({
+   Name = "🎯 กดเล็งเป้าใส่ฆาตกร (Snap Aim Murderer)",
+   Callback = function()
+      local murderer = getMM2Roles()
+      if murderer and murderer.Character and murderer.Character:FindFirstChild("Head") then
+          local gun = LocalPlayer.Backpack:FindFirstChild("Gun")
+          if gun and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+              LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):EquipTool(gun)
+          end
+          Camera.CFrame = CFrame.new(Camera.CFrame.Position, murderer.Character.Head.Position)
+      end
+   end,
+})
+
+-- ==========================================
+-- 🏃 2. แท็บผู้เล่น (แก้ระบบหน้าอกให้คงทน 100%)
+-- ==========================================
+local PlayerTab = Window:CreateTab("ผู้เล่น", 4483362458)
+PlayerTab:CreateSection("ปรับแต่งตัวละคร & ความสามารถ")
+
+PlayerTab:CreateSlider({
+   Name = "ความเร็วเดิน (WalkSpeed)",
+   Range = {16, 200},
+   Increment = 1,
+   CurrentValue = 16,
+   Callback = function(Value)
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+          LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
+      end
+   end,
+})
+
+PlayerTab:CreateSlider({
+   Name = "แรงกระโดดสูง (JumpPower)",
+   Range = {50, 400},
+   Increment = 5,
+   CurrentValue = 50,
+   Callback = function(Value)
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+          local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+          hum.UseJumpPower = true
+          hum.JumpPower = Value
+      end
+   end,
+})
+
+-- แปลง R6 / R15
+PlayerTab:CreateButton({
+   Name = "แปลงเป็น R6 (Load R6 Anims)",
+   Callback = function()
+      loadstring(game:HttpGet("https://raw.githubusercontent.com/AnonymouseScript/R6-Anims/main/R6.lua"))()
+   end,
+})
+
+-- ระบบเสกหน้าอกแบบสมบูรณ์ (ปรับขนาด + ตำแหน่ง + สกินแนบชิด)
+local fakeChestFolder = nil
+local fakeChestEnabled = false
+
+local function createFakeChest()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+    if not torso then return end
+
+    if fakeChestFolder then fakeChestFolder:Destroy() end
+    fakeChestFolder = Instance.new("Folder")
+    fakeChestFolder.Name = "FakeChestContainer"
+    fakeChestFolder.Parent = char
+
+    local isR15 = char:FindFirstChild("UpperTorso") ~= nil
+    local offsets = isR15 and {Vector3.new(-0.35, 0.15, -0.55), Vector3.new(0.35, 0.15, -0.55)} 
+                           or {Vector3.new(-0.4, 0.2, -0.55), Vector3.new(0.4, 0.2, -0.55)}
+
+    for _, offset in ipairs(offsets) do
+        local p = Instance.new("Part")
+        p.Name = "ChestPart"
+        p.Size = Vector3.new(0.95, 0.95, 0.95)
+        p.Shape = Enum.PartType.Ball
+        p.CanCollide = false
+        p.Material = torso.Material
+        p.Color = torso.Color
+        p.Parent = fakeChestFolder
+        p.CFrame = torso.CFrame * CFrame.new(offset)
+
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = torso
+        weld.Part1 = p
+        weld.Parent = p
+    end
+end
+
+PlayerTab:CreateToggle({
+   Name = "เสกหน้าอกปลอม (Fake Chest)",
+   CurrentValue = false,
+   Callback = function(Value)
+      fakeChestEnabled = Value
+      if Value then
+          createFakeChest()
+      else
+          if fakeChestFolder then fakeChestFolder:Destroy() end
+      end
+   end,
+})
+
+-- เช็คเกิดใหม่แล้วเสกหน้าอกให้ใหม่เองออโต้
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    if fakeChestEnabled then
+        createFakeChest()
+    end
+end)
+
+PlayerTab:CreateToggle({
+   Name = "เปิด/ปิด FLY GUI V3",
+   CurrentValue = false,
+   Callback = function(Value)
+      flyScreen.Enabled = Value
+      if not Value and flying then
+          stopFlying()
+          btnFly.BackgroundColor3 = Color3.fromRGB(255, 240, 80)
+      end
+   end,
+})
+
+-- ==========================================
+-- 🚀 3. แท็บวาร์ป & Extreme Fling
+-- ==========================================
+local TeleTab = Window:CreateTab("วาร์ป & Fling", 4483362458)
+TeleTab:CreateSection("ระบบ Fling & Teleport")
+
+local targetPlayerName = ""
+local extremeFlingEnabled = false
+
+local function getOtherPlayers()
+    local tbl = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then table.insert(tbl, p.Name) end
+    end
+    if #tbl == 0 then table.insert(tbl, "ไม่มีผู้เล่นอื่น") end
+    return tbl
+end
+
+local PlayerDropdown = TeleTab:CreateDropdown({
+   Name = "เลือกผู้เล่นเป้าหมาย",
+   Options = getOtherPlayers(),
+   CurrentOption = getOtherPlayers()[1],
+   Callback = function(Option)
+      targetPlayerName = type(Option) == "table" and Option[1] or Option
+   end,
+})
+
+TeleTab:CreateButton({
+   Name = "รีเฟรชรายชื่อผู้เล่น",
+   Callback = function() PlayerDropdown:Set(getOtherPlayers()) end,
+})
+
+TeleTab:CreateToggle({
+   Name = "ชนกระเด็นขั้นสูง (Extreme Fling + Auto Return)",
+   CurrentValue = false,
+   Callback = function(Value)
+      extremeFlingEnabled = Value
+      if Value then
+          task.spawn(function()
+              local myChar = LocalPlayer.Character
+              if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
+              local myHRP = myChar.HumanoidRootPart
+              local originalPos = myHRP.CFrame
+
+              while extremeFlingEnabled do
+                  RunService.Heartbeat:Wait()
+                  local target = Players:FindFirstChild(targetPlayerName)
+                  if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                      local tHRP = target.Character.HumanoidRootPart
+                      myHRP.Velocity = Vector3.new(0, 0, 0)
+                      myHRP.RotVelocity = Vector3.new(999999, 999999, 999999)
+                      myHRP.CFrame = tHRP.CFrame
+                  end
+              end
+
+              myHRP.RotVelocity = Vector3.zero
+              myHRP.Velocity = Vector3.zero
+              myHRP.CFrame = originalPos
+          end)
+      end
+   end,
+})
+
+-- ==========================================
+-- 🎯 4. แท็บระบบเล็ง (Aimbot)
+-- ==========================================
+local AimTab = Window:CreateTab("ระบบเล็ง (Aimbot)", 4483362458)
+AimTab:CreateSection("ตั้งค่า Aimbot")
+
+local aimbotEnabled = false
+local fovRadius = 150
+
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Radius = fovRadius
+fovCircle.Color = Color3.fromRGB(255, 0, 0)
+fovCircle.Thickness = 1.5
+fovCircle.Filled = false
+fovCircle.Transparency = 1
+
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = fovRadius
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+            local targetPart = plr.Character.Head
+            local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+
+            if onScreen then
+                local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = targetPart
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+AimTab:CreateToggle({
+   Name = "เปิดใช้งาน Aimbot (Camera Lock)",
+   CurrentValue = false,
+   Callback = function(Value) aimbotEnabled = Value end,
+})
+
+AimTab:CreateToggle({
+   Name = "แสดงวงกลมเล็ง (Show FOV Circle)",
+   CurrentValue = false,
+   Callback = function(Value) fovCircle.Visible = Value end,
+})
+
+AimTab:CreateSlider({
+   Name = "ขนาดวงกลมเล็ง (FOV Radius)",
+   Range = {50, 500},
+   Increment = 10,
+   Suffix = "px",
+   CurrentValue = 150,
+   Callback = function(Value)
+      fovRadius = Value
+      fovCircle.Radius = Value
+   end,
+})
+
+RunService.RenderStepped:Connect(function()
+    fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    if aimbotEnabled then
+        local target = getClosestPlayer()
+        if target then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+        end
+    end
+end)
+
+-- ==========================================
+-- ⚙️ 5. แท็บทั่วไป (Misc)
+-- ==========================================
+local MiscTab = Window:CreateTab("ทั่วไป", 4483362458)
+MiscTab:CreateSection("ฟังก์ชันเสริม")
+
+local noclipEnabled = false
+MiscTab:CreateToggle({
+   Name = "เดินทะลุกำแพง (Noclip)",
+   CurrentValue = false,
+   Callback = function(Value) noclipEnabled = Value end,
+})
+
+RunService.Stepped:Connect(function()
+    if noclipEnabled and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
